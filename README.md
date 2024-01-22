@@ -8,7 +8,7 @@ Kasa Camera, PTZ Camera, and Doorbell Integration for Hubitat Environment.
 
 ## Documentation:
 
-Installation: https://github.com/DaveGut/tapoHubitat/blob/main/Docs/TapoInstallation.md
+Installation: https://github.com/DaveGut/kasaCam_Hubitat/blob/main/Docs/kasaCameraInstallation.md
 
 App description: Pending Development
 
