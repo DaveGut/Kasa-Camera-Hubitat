@@ -1,5 +1,5 @@
-# Kasa-Camera-Hubitat
-Kasa Camera, PTZ Camera, and doorbell Integration for Hubitat Environment.
+# Hubitat Kasa Camera Integration
+Kasa Camera, PTZ Camera, and Doorbell Integration for Hubitat Environment.
 
 ### Developed with:
 	a.	Kasa KC115 PTZ Camera
