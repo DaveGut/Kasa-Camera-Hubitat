@@ -11,12 +11,10 @@
     
 ## Install device into the Kasa/Tapo phone application (iPhone / Android)
 	a.	Use manufacturer's instruction.
- 	b.	Matter devices.  Need verification all functions work if installed vi Matter 
-  		to non-Tapo Application
-  	c.	After installation, CREATE a STATIC IP (DHCP Reservation) for the device on 
+ 	b.	After installation, CREATE a STATIC IP (DHCP Reservation) for the device on 
    		your WiFi Router.
 
-## Install devices via the kasaCamera Application
+## Install devices via the Hubitat kasaCamera Application
 	a.	Open a Log Page to view messages/errors during the installation process.
  	b.	Create/Open the App in Hubitat using "add user app"
  	c.	If you use non-standard IP segments, update by selecting Modify LAN
