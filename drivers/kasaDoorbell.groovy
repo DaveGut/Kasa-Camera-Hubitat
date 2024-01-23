@@ -11,7 +11,7 @@ on newer models to determine if these support that reporting.
 
 ===================================================================================================*/
 metadata {
-	definition (name: "kasaCameraPtz",
+	definition (name: "kasaDoorbell",
 				namespace: "davegut",
 				author: "Dave Gutheinz",
 				importUrl: ""
@@ -21,8 +21,6 @@ metadata {
 		command "on", [[name: "Privacy Mode On"]]
 		command "off", [[name: "Privacy Mode Off"]]
 		command "flip", [[name: "NOT IMPLEMENTED"]]
-		command "mute", [[name: "NOT IMPLEMENTED"]]
-		command "unmute", [[name: "NOT IMPLEMENTED"]]
 		capability "Motion Sensor"
 		command "setPollInterval", [[
 			name: "Poll Interval in seconds",
@@ -46,8 +44,6 @@ metadata {
 			   defaultValue: 1000)
 		input ("personDetect", "enum", title: "Person Detect",
 			   options: ["on", "off"], defaultValue: "on")
-		input ("bcDetect", "enum", title: "Baby Cry Detect",
-			   options: ["on", "off"], defaultValue: "off")
 		input ("soundDetect", "enum", title: "Sound Detect",
 			   options: ["on", "off"], defaultValue: "on")
 		input ("soundDetSense", "enum", title: "Sound Detection Senvitivity",
@@ -56,8 +52,10 @@ metadata {
 			   options: ["on", "off"], defaultValue: "on")
 		input ("clipAudio", "enum", title: "Clip Audio Recording", 
 			   options: ["on", "off"], defaultValue: "on")
+		input ("dbLedOnOff", "enum", title: "Doorbell Button LED",
+			   options: ["on", "off"], defaultValue: "on")
 		input ("ledOnOff", "enum", title: "LED",
-				   options: ["on", "off"], defaultValue: "on")
+			   options: ["on", "off"], defaultValue: "on")
 		input ("infoLog", "bool", title: "Enable information logging",defaultValue: true)
 		input ("logEnable", "bool", title: "Enable debug logging", defaultValue: true)
 		input("credType", "enum", title: "Credential Type (CAUTION)",
@@ -98,13 +96,13 @@ def setPreferences() {
 				day_mode_value: triggerTime,
 				night_mode_value: triggerTime]],
 		"smartlife.cam.ipcamera.led":[
-			set_status:[value: ledOnOff]],
+			set_status:[value: ledOnOff],
+			set_buttonled_status:[value: dbLedOnOff]],
 		"smartlife.cam.ipcamera.soundDetect":[
 			set_is_enable:[value: soundDetect],
 			set_sensitivity:[value: soundDetSense]],
 		"smartlife.cam.ipcamera.intelligence":[
-			set_pd_enable:[value: personDetect],
-			set_bcd_enable:[value: bcDetect]],
+			set_pd_enable:[value: personDetect]],
 		"smartlife.cam.ipcamera.delivery":[
 			set_clip_audio_is_enable:[value:clipAudio]]
 	]
@@ -112,13 +110,13 @@ def setPreferences() {
 		cmdData << ["smartlife.cam.ipcamera.vod":[
 			set_is_enable:[value: cvrOnOff]]]
 	}
-	def respData = syncPost(cmdData, setPreferences)
+	def respData = syncPost(cmdData, "setPreferences")
 	if (respData == "ERROR") {
 		logData << [status: "FAILED", respData: respData]
 	} else {
 		logData << [status: "OK"]
 	}
-	refresh()
+	def waitFor = refresh()
 	return logData
 }
 
@@ -132,44 +130,38 @@ def getPreferences() {
 }
 
 //	===== Device Command Methods =====
-def flip() { logWarn("FLIP COMMAND NOT IMPLEMENTED!") }
-def mute() { logWarn("MUTE COMMAND NOT IMPLEMENTED!") }
-def unmute() { logWarn("UNMUTE COMMAND NOT IMPLEMENTED!") }
+def flip() {
+	logWarn("FLIP COMMAND NOT IMPLEMENTED!")
+}
 
 //	===== refesh methods =====
 def refresh() {
 	def endTime = (now()/1000).toInteger()
 	def startTime = endTime - 3600
 	Map cmdData = [
-		"smartlife.cam.ipcamera.motionDetect":[
-			get_is_enable:[],
-			get_sensitivity:[],
-			get_min_trigger_time:[]],
+		"smartlife.cam.ipcamera.motionDetect":[get_is_enable:[]],
 		"smartlife.cam.ipcamera.led":[get_status:[]],
 		"smartlife.cam.ipcamera.sdCard":[get_sd_card_state:[]],
-		"smartlife.cam.ipcamera.soundDetect":[
-			get_is_enable:[],
-			get_sensitivity:[]],
-		"smartlife.cam.ipcamera.intelligence":[
-			get_pd_enable:[],
-			get_bcd_enable:[]],
+		"smartlife.cam.ipcamera.soundDetect":[get_is_enable:[]],
+		"smartlife.cam.ipcamera.intelligence":[get_pd_enable:[]],
 		"smartlife.cam.ipcamera.delivery":[get_clip_audio_is_enable:[]],
+		"smartlife.cam.ipcamera.audio":[get_mic_config:[]],
+		"smartlife.cam.ipcamera.dndSchedule":[get_dnd_enable:[]],
 		"smartlife.cam.ipcamera.dayNight":[get_mode:[]],
-		"smartlife.cam.ipcamera.vod":[
-			get_is_enable:[],
-			get_detect_zone_list: [start_time: startTime, end_time: endTime]],
-		"smartlife.cam.ipcamera.switch":[get_is_enable:[]],
-	]
-	asyncPost(cmdData, "refresh")
+		"smartlife.cam.ipcamera.vod":[get_is_enable:[]]]
+	asyncPost(cmdData, "refresh(1)")
 	pauseExecution(3000)
-//	ptzRefresh (will be part of ptz driver only.
 	cmdData = [
-		"smartlife.cam.ipcamera.ptz":[
-			get_all_preset:[],
-			get_patrol_is_enable:[],
-			get_ptz_tracking_is_enable:[]
-		]]
-	asyncPost(cmdData, "ptzRefresh")
+		"smartlife.cam.ipcamera.motionDetect":[get_sensitivity:[]],
+		"smartlife.cam.ipcamera.soundDetect":[get_sensitivity:[]],
+		"smartlife.cam.ipcamera.vod":[get_detect_zone_list: [start_time: startTime, end_time: endTime]],
+		"smartlife.cam.ipcamera.led":[get_buttonled_status:[]]]
+	asyncPost(cmdData, "refresh(2)")
+	pauseExecution(2000)
+	cmdData = [
+		"smartlife.cam.ipcamera.switch":[get_is_enable:[]],
+		"smartlife.cam.ipcamera.motionDetect":[get_min_trigger_time:[]]]
+	asyncPost(cmdData, "refresh(3)")
 	pauseExecution(3000)
 	return "commandsSent"
 }
@@ -869,117 +861,6 @@ def updateAttr(attr, value) { // library marker davegut.lib_kasaCam_common, line
 
 // ~~~~~ end include (43) davegut.lib_kasaCam_common ~~~~~
 
-// ~~~~~ start include (45) davegut.lib_kasaCam_ptz ~~~~~
-library ( // library marker davegut.lib_kasaCam_ptz, line 1
-	name: "lib_kasaCam_ptz", // library marker davegut.lib_kasaCam_ptz, line 2
-	namespace: "davegut", // library marker davegut.lib_kasaCam_ptz, line 3
-	author: "Dave Gutheinz", // library marker davegut.lib_kasaCam_ptz, line 4
-	description: "Camera Pan, Tilt, and Zoom Methods", // library marker davegut.lib_kasaCam_ptz, line 5
-	category: "utilities", // library marker davegut.lib_kasaCam_ptz, line 6
-	documentationLink: "" // library marker davegut.lib_kasaCam_ptz, line 7
-) // library marker davegut.lib_kasaCam_ptz, line 8
-command "patrolMode", [[ // library marker davegut.lib_kasaCam_ptz, line 9
-	name: "Patrol Mode", // library marker davegut.lib_kasaCam_ptz, line 10
-	constraints: ["on", "off"], // library marker davegut.lib_kasaCam_ptz, line 11
-	type: "ENUM"]] // library marker davegut.lib_kasaCam_ptz, line 12
-attribute "patrolMode", "string" // library marker davegut.lib_kasaCam_ptz, line 13
-command "tracking", [[ // library marker davegut.lib_kasaCam_ptz, line 14
-	name: "Target Tracking", // library marker davegut.lib_kasaCam_ptz, line 15
-	constraints: ["on", "off"], // library marker davegut.lib_kasaCam_ptz, line 16
-	type: "ENUM"]] // library marker davegut.lib_kasaCam_ptz, line 17
-attribute "tracking", "string" // library marker davegut.lib_kasaCam_ptz, line 18
-command "panCamera", [[ // library marker davegut.lib_kasaCam_ptz, line 19
-	name: "Pan Direction", type: "ENUM", // library marker davegut.lib_kasaCam_ptz, line 20
-	constraints: ["left", "right"]], [ // library marker davegut.lib_kasaCam_ptz, line 21
-	name: "Speed (1-10)", type: "NUMBER"]] // library marker davegut.lib_kasaCam_ptz, line 22
-attribute "viewpoints", "NUMBER" // library marker davegut.lib_kasaCam_ptz, line 23
-
-def panCamera(direction, speed = 5) { // library marker davegut.lib_kasaCam_ptz, line 25
-	if (speed < 1 || speed > 10) { speed = 5 } // library marker davegut.lib_kasaCam_ptz, line 26
-	Map cmdData = [ // library marker davegut.lib_kasaCam_ptz, line 27
-		"smartlife.cam.ipcamera.ptz":[ // library marker davegut.lib_kasaCam_ptz, line 28
-			set_move:[direction: direction, speed: speed]]] // library marker davegut.lib_kasaCam_ptz, line 29
-	asyncPost(cmdData, "panTracking") // library marker davegut.lib_kasaCam_ptz, line 30
-} // library marker davegut.lib_kasaCam_ptz, line 31
-
-def tracking(onOff) { // library marker davegut.lib_kasaCam_ptz, line 33
-	Map cmdData = [ // library marker davegut.lib_kasaCam_ptz, line 34
-		"smartlife.cam.ipcamera.ptz":[ // library marker davegut.lib_kasaCam_ptz, line 35
-			set_ptz_tracking_is_enable:[value: onOff], // library marker davegut.lib_kasaCam_ptz, line 36
-			get_ptz_tracking_is_enable:[]]] // library marker davegut.lib_kasaCam_ptz, line 37
-	asyncPost(cmdData, "tracking") // library marker davegut.lib_kasaCam_ptz, line 38
-} // library marker davegut.lib_kasaCam_ptz, line 39
-
-def patrolMode(onOff) { // library marker davegut.lib_kasaCam_ptz, line 41
-	if (device.currentValue("viewpoints") >= 2) { // library marker davegut.lib_kasaCam_ptz, line 42
-		Map cmdData = [ // library marker davegut.lib_kasaCam_ptz, line 43
-			"smartlife.cam.ipcamera.ptz":[ // library marker davegut.lib_kasaCam_ptz, line 44
-				set_patrol_is_enable:[value: onOff], // library marker davegut.lib_kasaCam_ptz, line 45
-				get_patrol_is_enable:[]]] // library marker davegut.lib_kasaCam_ptz, line 46
-		asyncPost(cmdData, "patrolMode") // library marker davegut.lib_kasaCam_ptz, line 47
-	} else { // library marker davegut.lib_kasaCam_ptz, line 48
-		logWarn([method: "patrolMode", error: "At least two viewpoints must be set to start patrol mode"]) // library marker davegut.lib_kasaCam_ptz, line 49
-	} // library marker davegut.lib_kasaCam_ptz, line 50
-} // library marker davegut.lib_kasaCam_ptz, line 51
-
-def xxxsetViewpoint(preset) { // library marker davegut.lib_kasaCam_ptz, line 53
-	Map presets = state.presets // library marker davegut.lib_kasaCam_ptz, line 54
-	def presetName = presets."${preset}" // library marker davegut.lib_kasaCam_ptz, line 55
-	if (presetName != null) { // library marker davegut.lib_kasaCam_ptz, line 56
-		preset = preset.toInteger() // library marker davegut.lib_kasaCam_ptz, line 57
-		Map cmdData = [ // library marker davegut.lib_kasaCam_ptz, line 58
-			"smartlife.cam.ipcamera.ptz":[ // library marker davegut.lib_kasaCam_ptz, line 59
-				set_run_to_preset:[index: preset]]] // library marker davegut.lib_kasaCam_ptz, line 60
-		asyncPost(cmdData, "setViewpoint") // library marker davegut.lib_kasaCam_ptz, line 61
-		updateAttr("lastViewpoint", presetName) // library marker davegut.lib_kasaCam_ptz, line 62
-	} else { // library marker davegut.lib_kasaCam_ptz, line 63
-		updateAttr("lastViewpoint", " ") // library marker davegut.lib_kasaCam_ptz, line 64
-		Map warnLog = [method: "setViewpoint", preset: preset, // library marker davegut.lib_kasaCam_ptz, line 65
-					   presetName: presetName, error: "noSuchPreset"] // library marker davegut.lib_kasaCam_ptz, line 66
-		logWarn(warnLog) // library marker davegut.lib_kasaCam_ptz, line 67
-	} // library marker davegut.lib_kasaCam_ptz, line 68
-} // library marker davegut.lib_kasaCam_ptz, line 69
-
-def parsePtz(data, source) { // library marker davegut.lib_kasaCam_ptz, line 71
-	Map logData = [method: "parsePtz", source: source] // library marker davegut.lib_kasaCam_ptz, line 72
-	data.value.each { // library marker davegut.lib_kasaCam_ptz, line 73
-		def key = it.key // library marker davegut.lib_kasaCam_ptz, line 74
-		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_ptz, line 75
-		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_ptz, line 76
-			def setting = "ERROR" // library marker davegut.lib_kasaCam_ptz, line 77
-			switch(key) { // library marker davegut.lib_kasaCam_ptz, line 78
-				case "get_all_preset": // library marker davegut.lib_kasaCam_ptz, line 79
-					setting = it.value.preset_attr // library marker davegut.lib_kasaCam_ptz, line 80
-					updateAttr("viewpoints", setting.size()) // library marker davegut.lib_kasaCam_ptz, line 81
-					valueLog<< [viewpoints: setting.size()] // library marker davegut.lib_kasaCam_ptz, line 82
-					break // library marker davegut.lib_kasaCam_ptz, line 83
-				case "set_run_to_preset": break // library marker davegut.lib_kasaCam_ptz, line 84
-				case "set_patrol_is_enable": break // library marker davegut.lib_kasaCam_ptz, line 85
-				case "get_patrol_is_enable": // library marker davegut.lib_kasaCam_ptz, line 86
-					setting = it.value.value // library marker davegut.lib_kasaCam_ptz, line 87
-					updateAttr("patrolMode", setting) // library marker davegut.lib_kasaCam_ptz, line 88
-					valueLog << [patrolMode: setting, status: "OK"] // library marker davegut.lib_kasaCam_ptz, line 89
-					break // library marker davegut.lib_kasaCam_ptz, line 90
-				case "set_ptz_tracking_is_enable": break // library marker davegut.lib_kasaCam_ptz, line 91
-				case "get_ptz_tracking_is_enable": // library marker davegut.lib_kasaCam_ptz, line 92
-					setting = it.value.value // library marker davegut.lib_kasaCam_ptz, line 93
-					updateAttr("tracking", setting) // library marker davegut.lib_kasaCam_ptz, line 94
-					valueLog << [tracking: setting, status: "OK"] // library marker davegut.lib_kasaCam_ptz, line 95
-					break // library marker davegut.lib_kasaCam_ptz, line 96
-				case "set_move": break // library marker davegut.lib_kasaCam_ptz, line 97
-				default: // library marker davegut.lib_kasaCam_ptz, line 98
-					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_ptz, line 99
-			} // library marker davegut.lib_kasaCam_ptz, line 100
-		} else { // library marker davegut.lib_kasaCam_ptz, line 101
-			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_ptz, line 102
-		} // library marker davegut.lib_kasaCam_ptz, line 103
-		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_ptz, line 104
-	} // library marker davegut.lib_kasaCam_ptz, line 105
-	logDebug(logData) // library marker davegut.lib_kasaCam_ptz, line 106
-} // library marker davegut.lib_kasaCam_ptz, line 107
-
-// ~~~~~ end include (45) davegut.lib_kasaCam_ptz ~~~~~
-
 // ~~~~~ start include (15) davegut.Logging ~~~~~
 library ( // library marker davegut.Logging, line 1
 	name: "Logging", // library marker davegut.Logging, line 2
@@ -1033,3 +914,85 @@ def logWarn(msg) { log.warn "${label()}: ${msg}" } // library marker davegut.Log
 def logError(msg) { log.error "${label()}: ${msg}" } // library marker davegut.Logging, line 50
 
 // ~~~~~ end include (15) davegut.Logging ~~~~~
+
+// ~~~~~ start include (44) davegut.lib_kasaCam_doorbell ~~~~~
+library ( // library marker davegut.lib_kasaCam_doorbell, line 1
+	name: "lib_kasaCam_doorbell", // library marker davegut.lib_kasaCam_doorbell, line 2
+	namespace: "davegut", // library marker davegut.lib_kasaCam_doorbell, line 3
+	author: "Dave Gutheinz", // library marker davegut.lib_kasaCam_doorbell, line 4
+	description: "Methods explicit to the Kasa Doorbell varient.", // library marker davegut.lib_kasaCam_doorbell, line 5
+	category: "utilities", // library marker davegut.lib_kasaCam_doorbell, line 6
+	documentationLink: "" // library marker davegut.lib_kasaCam_doorbell, line 7
+) // library marker davegut.lib_kasaCam_doorbell, line 8
+
+capability "AudioVolume" // library marker davegut.lib_kasaCam_doorbell, line 10
+command "quickResponse", [ // library marker davegut.lib_kasaCam_doorbell, line 11
+	[name: "response", // library marker davegut.lib_kasaCam_doorbell, line 12
+	 constraints: ["Can't Answer", "Leave Item", "One Minute", // library marker davegut.lib_kasaCam_doorbell, line 13
+				   "Not Interested", "Calling Police"], type: "ENUM"]] // library marker davegut.lib_kasaCam_doorbell, line 14
+command "doNotDisturb", [[ // library marker davegut.lib_kasaCam_doorbell, line 15
+	name: "Do Not Disturb on/off", // library marker davegut.lib_kasaCam_doorbell, line 16
+	constraints: ["true", "false"], // library marker davegut.lib_kasaCam_doorbell, line 17
+	type: "ENUM"]] // library marker davegut.lib_kasaCam_doorbell, line 18
+attribute "doNotDisturb", "bool" // library marker davegut.lib_kasaCam_doorbell, line 19
+
+def mute() { setVolume(0) } // library marker davegut.lib_kasaCam_doorbell, line 21
+def unmute() { setVolume(state.lastVolume) } // library marker davegut.lib_kasaCam_doorbell, line 22
+def volumeUp() { // library marker davegut.lib_kasaCam_doorbell, line 23
+	def curVolume = device.currentValue("volume").toInteger() // library marker davegut.lib_kasaCam_doorbell, line 24
+	if (curVolume != 100) { // library marker davegut.lib_kasaCam_doorbell, line 25
+		def newVolume = curVolume + 10 // library marker davegut.lib_kasaCam_doorbell, line 26
+		if (newVolume > 100) { newVolume = 100 } // library marker davegut.lib_kasaCam_doorbell, line 27
+		setVolume(newVolume) // library marker davegut.lib_kasaCam_doorbell, line 28
+	} // library marker davegut.lib_kasaCam_doorbell, line 29
+} // library marker davegut.lib_kasaCam_doorbell, line 30
+def volumeDown() { // library marker davegut.lib_kasaCam_doorbell, line 31
+	def curVolume = device.currentValue("volume").toInteger() // library marker davegut.lib_kasaCam_doorbell, line 32
+	if (curVolume != 0) { // library marker davegut.lib_kasaCam_doorbell, line 33
+		def newVolume = curVolume - 10 // library marker davegut.lib_kasaCam_doorbell, line 34
+		if (newVolume <= 0) { newVolume = 0 } // library marker davegut.lib_kasaCam_doorbell, line 35
+		setVolume(newVolume) // library marker davegut.lib_kasaCam_doorbell, line 36
+	} // library marker davegut.lib_kasaCam_doorbell, line 37
+} // library marker davegut.lib_kasaCam_doorbell, line 38
+def setVolume(volume) { // library marker davegut.lib_kasaCam_doorbell, line 39
+	if (volume < 0 || volume > 100) { // library marker davegut.lib_kasaCam_doorbell, line 40
+		Map logData = [method: "setVolume", status: "ERROR", data: "Volume ${volume} is out of range"] // library marker davegut.lib_kasaCam_doorbell, line 41
+		logWarn logData // library marker davegut.lib_kasaCam_doorbell, line 42
+		return // library marker davegut.lib_kasaCam_doorbell, line 43
+	} // library marker davegut.lib_kasaCam_doorbell, line 44
+	Map cmdData = [ // library marker davegut.lib_kasaCam_doorbell, line 45
+		"smartlife.cam.ipcamera.audio":[ // library marker davegut.lib_kasaCam_doorbell, line 46
+			set_mic_config:[volume: volume], // library marker davegut.lib_kasaCam_doorbell, line 47
+			get_mic_config:[]]] // library marker davegut.lib_kasaCam_doorbell, line 48
+	asyncPost(cmdData, "setVolume") // library marker davegut.lib_kasaCam_doorbell, line 49
+} // library marker davegut.lib_kasaCam_doorbell, line 50
+
+def doNotDisturb(enable) { // library marker davegut.lib_kasaCam_doorbell, line 52
+	def enab = true // library marker davegut.lib_kasaCam_doorbell, line 53
+	if (enable == "false") { enab = false } // library marker davegut.lib_kasaCam_doorbell, line 54
+	Map cmdData = [ // library marker davegut.lib_kasaCam_doorbell, line 55
+		"smartlife.cam.ipcamera.dndSchedule":[ // library marker davegut.lib_kasaCam_doorbell, line 56
+			set_dnd_enable:[enable: enab], // library marker davegut.lib_kasaCam_doorbell, line 57
+			get_dnd_enable:[]]] // library marker davegut.lib_kasaCam_doorbell, line 58
+	asyncPost(cmdData, "setDoNotDisturb") // library marker davegut.lib_kasaCam_doorbell, line 59
+} // library marker davegut.lib_kasaCam_doorbell, line 60
+
+def quickResponse(response) { // library marker davegut.lib_kasaCam_doorbell, line 62
+	def respNo = 1 // library marker davegut.lib_kasaCam_doorbell, line 63
+	switch (response) { // library marker davegut.lib_kasaCam_doorbell, line 64
+		case "Can't Answer": respNo = 1; break // library marker davegut.lib_kasaCam_doorbell, line 65
+		case "Leave Item": respNo = 2; break // library marker davegut.lib_kasaCam_doorbell, line 66
+		case "One Minute": respNo = 3; break // library marker davegut.lib_kasaCam_doorbell, line 67
+		case "Not Interested": respNo = 4; break // library marker davegut.lib_kasaCam_doorbell, line 68
+		case "Calling Police": respNo = 5; break // library marker davegut.lib_kasaCam_doorbell, line 69
+		default: respNo = 1 // library marker davegut.lib_kasaCam_doorbell, line 70
+	} // library marker davegut.lib_kasaCam_doorbell, line 71
+	Map cmdData = [ // library marker davegut.lib_kasaCam_doorbell, line 72
+		"smartlife.cam.ipcamera.audio":[ // library marker davegut.lib_kasaCam_doorbell, line 73
+			set_quickres_state:[file_id: respNo] // library marker davegut.lib_kasaCam_doorbell, line 74
+	]] // library marker davegut.lib_kasaCam_doorbell, line 75
+	asyncPost(cmdData, "quickResponse") // library marker davegut.lib_kasaCam_doorbell, line 76
+} // library marker davegut.lib_kasaCam_doorbell, line 77
+
+
+// ~~~~~ end include (44) davegut.lib_kasaCam_doorbell ~~~~~

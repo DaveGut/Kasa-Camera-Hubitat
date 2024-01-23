@@ -355,7 +355,7 @@ def setCommsError(status) { // library marker davegut.lib_kasaCam_transport, lin
 	} else { // library marker davegut.lib_kasaCam_transport, line 182
 		//	status is true.  set comms error, slow down polling. // library marker davegut.lib_kasaCam_transport, line 183
 		updateAttr("commsError", true) // library marker davegut.lib_kasaCam_transport, line 184
-		setPollInterval(true) // library marker davegut.lib_kasaCam_transport, line 185
+		setPollInterval("error") // library marker davegut.lib_kasaCam_transport, line 185
 		return [method: "setCommsError", status: "set"] // library marker davegut.lib_kasaCam_transport, line 186
 	} // library marker davegut.lib_kasaCam_transport, line 187
 } // library marker davegut.lib_kasaCam_transport, line 188
@@ -436,424 +436,426 @@ def nightVision(mode) { // library marker davegut.lib_kasaCam_common, line 40
 	asyncPost(cmdData, "setNightVision") // library marker davegut.lib_kasaCam_common, line 45
 } // library marker davegut.lib_kasaCam_common, line 46
 
-def setPollInterval(isError = false) { // library marker davegut.lib_kasaCam_common, line 48
+def setPollInterval(interval) { // library marker davegut.lib_kasaCam_common, line 48
 	unschedule("poll") // library marker davegut.lib_kasaCam_common, line 49
-	//	update state.pollInterval unless called from a commsError. // library marker davegut.lib_kasaCam_common, line 50
-	//	Then do not so poll is recovered on error recovery. // library marker davegut.lib_kasaCam_common, line 51
-	if (isError == true) { // library marker davegut.lib_kasaCam_common, line 52
-		runEvery5Minutes("poll") // library marker davegut.lib_kasaCam_common, line 53
-		interval "5 minutes" // library marker davegut.lib_kasaCam_common, line 54
-	} else { // library marker davegut.lib_kasaCam_common, line 55
-		if (interval == null) {  // library marker davegut.lib_kasaCam_common, line 56
-			interval = "30" // library marker davegut.lib_kasaCam_common, line 57
-			state.pollInterval = "30" // library marker davegut.lib_kasaCam_common, line 58
+log.debug interval // library marker davegut.lib_kasaCam_common, line 50
+	//	update state.pollInterval unless called from a commsError. // library marker davegut.lib_kasaCam_common, line 51
+	//	Then do not so poll is recovered on error recovery. // library marker davegut.lib_kasaCam_common, line 52
+	if (interval == "error") { // library marker davegut.lib_kasaCam_common, line 53
+		runEvery5Minutes("poll") // library marker davegut.lib_kasaCam_common, line 54
+		interval = "5 minutes" // library marker davegut.lib_kasaCam_common, line 55
+	} else { // library marker davegut.lib_kasaCam_common, line 56
+		if (interval == null) {  // library marker davegut.lib_kasaCam_common, line 57
+			interval = "30" // library marker davegut.lib_kasaCam_common, line 58
 		} // library marker davegut.lib_kasaCam_common, line 59
-		if (interval != "off") { // library marker davegut.lib_kasaCam_common, line 60
-			schedule("3/${interval} * * * * ?", "poll") // library marker davegut.lib_kasaCam_common, line 61
-		} // library marker davegut.lib_kasaCam_common, line 62
-	} // library marker davegut.lib_kasaCam_common, line 63
-	logDebug([method: "setPollInterval", pollInterval: interval]) // library marker davegut.lib_kasaCam_common, line 64
-	return interval // library marker davegut.lib_kasaCam_common, line 65
-} // library marker davegut.lib_kasaCam_common, line 66
-def poll() { // library marker davegut.lib_kasaCam_common, line 67
-	Map cmdData = [system: [get_sysinfo:[]]] // library marker davegut.lib_kasaCam_common, line 68
-	asyncPost(cmdData, "motionParse") // library marker davegut.lib_kasaCam_common, line 69
-} // library marker davegut.lib_kasaCam_common, line 70
+		state.pollInterval = interval // library marker davegut.lib_kasaCam_common, line 60
+		if (interval != "off") { // library marker davegut.lib_kasaCam_common, line 61
+			schedule("3/${interval} * * * * ?", "poll") // library marker davegut.lib_kasaCam_common, line 62
+		} // library marker davegut.lib_kasaCam_common, line 63
+	} // library marker davegut.lib_kasaCam_common, line 64
+	logDebug([method: "setPollInterval", pollInterval: interval]) // library marker davegut.lib_kasaCam_common, line 65
+log.warn interval // library marker davegut.lib_kasaCam_common, line 66
+	return interval // library marker davegut.lib_kasaCam_common, line 67
+} // library marker davegut.lib_kasaCam_common, line 68
+def poll() { // library marker davegut.lib_kasaCam_common, line 69
+	Map cmdData = [system: [get_sysinfo:[]]] // library marker davegut.lib_kasaCam_common, line 70
+	asyncPost(cmdData, "motionParse") // library marker davegut.lib_kasaCam_common, line 71
+} // library marker davegut.lib_kasaCam_common, line 72
 
-def rebootDev() { // library marker davegut.lib_kasaCam_common, line 72
-	Map cmdData = [ // library marker davegut.lib_kasaCam_common, line 73
-		"smartlife.cam.ipcamera.system":[ // library marker davegut.lib_kasaCam_common, line 74
-			set_reboot:[]]] // library marker davegut.lib_kasaCam_common, line 75
-	asyncPost(cmdData, "rebootDev") // library marker davegut.lib_kasaCam_common, line 76
-} // library marker davegut.lib_kasaCam_common, line 77
+def rebootDev() { // library marker davegut.lib_kasaCam_common, line 74
+	Map cmdData = [ // library marker davegut.lib_kasaCam_common, line 75
+		"smartlife.cam.ipcamera.system":[ // library marker davegut.lib_kasaCam_common, line 76
+			set_reboot:[]]] // library marker davegut.lib_kasaCam_common, line 77
+	asyncPost(cmdData, "rebootDev") // library marker davegut.lib_kasaCam_common, line 78
+} // library marker davegut.lib_kasaCam_common, line 79
 
-//	===== Distribute Async Response and Parse Data ===== // library marker davegut.lib_kasaCam_common, line 79
-def distRespData(respData, source) { // library marker davegut.lib_kasaCam_common, line 80
-	Map logData = [method: "distRespData", source: source] // library marker davegut.lib_kasaCam_common, line 81
-	def error = false // library marker davegut.lib_kasaCam_common, line 82
-	respData.each { // library marker davegut.lib_kasaCam_common, line 83
-		if (respData == "ERROR") { // library marker davegut.lib_kasaCam_common, line 84
-			error = true // library marker davegut.lib_kasaCam_common, line 85
-			logData << [respData: respData] // library marker davegut.lib_kasaCam_common, line 86
-		} else if (it.value.err_code && it.value.err_code !=0) { // library marker davegut.lib_kasaCam_common, line 87
-			error = true // library marker davegut.lib_kasaCam_common, line 88
-			logData << ["${it.key}": it.value] // library marker davegut.lib_kasaCam_common, line 89
-		} else { // library marker davegut.lib_kasaCam_common, line 90
-			switch(it.key) { // library marker davegut.lib_kasaCam_common, line 91
-				case "system": motionParse(it, source); break // library marker davegut.lib_kasaCam_common, line 92
-				case "smartlife.cam.ipcamera.dayNight": parseDayNight(it, source); break // library marker davegut.lib_kasaCam_common, line 93
-				case "smartlife.cam.ipcamera.dndSchedule": parseDndSchedule(it, source); break // library marker davegut.lib_kasaCam_common, line 94
-				case "smartlife.cam.ipcamera.switch": parseSwitch(it, source); break // library marker davegut.lib_kasaCam_common, line 95
-				case "smartlife.cam.ipcamera.audio": parseAudio(it, source); break // library marker davegut.lib_kasaCam_common, line 96
-				case "smartlife.cam.ipcamera.ptz": parsePtz(it, source); break // library marker davegut.lib_kasaCam_common, line 97
-				case "smartlife.cam.ipcamera.vod": parseVod(it, source); break // library marker davegut.lib_kasaCam_common, line 98
-				case "smartlife.cam.ipcamera.delivery": parseDelivery(it, source); break // library marker davegut.lib_kasaCam_common, line 99
-				case "smartlife.cam.ipcamera.intelligence": parseIntel(it, source); break // library marker davegut.lib_kasaCam_common, line 100
-				case "smartlife.cam.ipcamera.soundDetect": parseSoundDetect(it, source); break // library marker davegut.lib_kasaCam_common, line 101
-				case "smartlife.cam.ipcamera.led": parseLed(it, source); break // library marker davegut.lib_kasaCam_common, line 102
-				case "smartlife.cam.ipcamera.sdCard": parseSdCard(it, source); break // library marker davegut.lib_kasaCam_common, line 103
-				case "smartlife.cam.ipcamera.motionDetect": parseMotionDetect(it, source); break // library marker davegut.lib_kasaCam_common, line 104
-				default:  // library marker davegut.lib_kasaCam_common, line 105
-					logData << ["${it.key}": "unhandled", data: it] // library marker davegut.lib_kasaCam_common, line 106
-					error = true // library marker davegut.lib_kasaCam_common, line 107
-			} // library marker davegut.lib_kasaCam_common, line 108
-		} // library marker davegut.lib_kasaCam_common, line 109
-	} // library marker davegut.lib_kasaCam_common, line 110
-	if (error == true) { // library marker davegut.lib_kasaCam_common, line 111
-		logWarn(logData) // library marker davegut.lib_kasaCam_common, line 112
-	} else { // library marker davegut.lib_kasaCam_common, line 113
-		logDebug(logData) // library marker davegut.lib_kasaCam_common, line 114
-	} // library marker davegut.lib_kasaCam_common, line 115
-} // library marker davegut.lib_kasaCam_common, line 116
+//	===== Distribute Async Response and Parse Data ===== // library marker davegut.lib_kasaCam_common, line 81
+def distRespData(respData, source) { // library marker davegut.lib_kasaCam_common, line 82
+	Map logData = [method: "distRespData", source: source] // library marker davegut.lib_kasaCam_common, line 83
+	def error = false // library marker davegut.lib_kasaCam_common, line 84
+	respData.each { // library marker davegut.lib_kasaCam_common, line 85
+		if (respData == "ERROR") { // library marker davegut.lib_kasaCam_common, line 86
+			error = true // library marker davegut.lib_kasaCam_common, line 87
+			logData << [respData: respData] // library marker davegut.lib_kasaCam_common, line 88
+		} else if (it.value.err_code && it.value.err_code !=0) { // library marker davegut.lib_kasaCam_common, line 89
+			error = true // library marker davegut.lib_kasaCam_common, line 90
+			logData << ["${it.key}": it.value] // library marker davegut.lib_kasaCam_common, line 91
+		} else { // library marker davegut.lib_kasaCam_common, line 92
+			switch(it.key) { // library marker davegut.lib_kasaCam_common, line 93
+				case "system": motionParse(it, source); break // library marker davegut.lib_kasaCam_common, line 94
+				case "smartlife.cam.ipcamera.dayNight": parseDayNight(it, source); break // library marker davegut.lib_kasaCam_common, line 95
+				case "smartlife.cam.ipcamera.dndSchedule": parseDndSchedule(it, source); break // library marker davegut.lib_kasaCam_common, line 96
+				case "smartlife.cam.ipcamera.switch": parseSwitch(it, source); break // library marker davegut.lib_kasaCam_common, line 97
+				case "smartlife.cam.ipcamera.audio": parseAudio(it, source); break // library marker davegut.lib_kasaCam_common, line 98
+				case "smartlife.cam.ipcamera.ptz": parsePtz(it, source); break // library marker davegut.lib_kasaCam_common, line 99
+				case "smartlife.cam.ipcamera.vod": parseVod(it, source); break // library marker davegut.lib_kasaCam_common, line 100
+				case "smartlife.cam.ipcamera.delivery": parseDelivery(it, source); break // library marker davegut.lib_kasaCam_common, line 101
+				case "smartlife.cam.ipcamera.intelligence": parseIntel(it, source); break // library marker davegut.lib_kasaCam_common, line 102
+				case "smartlife.cam.ipcamera.soundDetect": parseSoundDetect(it, source); break // library marker davegut.lib_kasaCam_common, line 103
+				case "smartlife.cam.ipcamera.led": parseLed(it, source); break // library marker davegut.lib_kasaCam_common, line 104
+				case "smartlife.cam.ipcamera.sdCard": parseSdCard(it, source); break // library marker davegut.lib_kasaCam_common, line 105
+				case "smartlife.cam.ipcamera.motionDetect": parseMotionDetect(it, source); break // library marker davegut.lib_kasaCam_common, line 106
+				default:  // library marker davegut.lib_kasaCam_common, line 107
+					logData << ["${it.key}": "unhandled", data: it] // library marker davegut.lib_kasaCam_common, line 108
+					error = true // library marker davegut.lib_kasaCam_common, line 109
+			} // library marker davegut.lib_kasaCam_common, line 110
+		} // library marker davegut.lib_kasaCam_common, line 111
+	} // library marker davegut.lib_kasaCam_common, line 112
+	if (error == true) { // library marker davegut.lib_kasaCam_common, line 113
+		logWarn(logData) // library marker davegut.lib_kasaCam_common, line 114
+	} else { // library marker davegut.lib_kasaCam_common, line 115
+		logDebug(logData) // library marker davegut.lib_kasaCam_common, line 116
+	} // library marker davegut.lib_kasaCam_common, line 117
+} // library marker davegut.lib_kasaCam_common, line 118
 
-def motionParse(respData, source) { // library marker davegut.lib_kasaCam_common, line 118
-	def resp = respData.value.get_sysinfo.system // library marker davegut.lib_kasaCam_common, line 119
-	def lastActTime = resp.last_activity_timestamp // library marker davegut.lib_kasaCam_common, line 120
-	def sysTime = resp.system_time // library marker davegut.lib_kasaCam_common, line 121
-	def deltaTime = sysTime - lastActTime // library marker davegut.lib_kasaCam_common, line 122
-	if (lastActTime > state.lastActiveTime) { // library marker davegut.lib_kasaCam_common, line 123
-		updateAttr("motion", "active") // library marker davegut.lib_kasaCam_common, line 124
-		state.lastActiveTime = lastActTime // library marker davegut.lib_kasaCam_common, line 125
-	} else if (device.currentValue("motion") == "active" && // library marker davegut.lib_kasaCam_common, line 126
-			   15 < deltaTime) { // library marker davegut.lib_kasaCam_common, line 127
-		updateAttr("motion", "inactive") // library marker davegut.lib_kasaCam_common, line 128
-	} // library marker davegut.lib_kasaCam_common, line 129
-} // library marker davegut.lib_kasaCam_common, line 130
+def motionParse(respData, source) { // library marker davegut.lib_kasaCam_common, line 120
+	def resp = respData.value.get_sysinfo.system // library marker davegut.lib_kasaCam_common, line 121
+	def lastActTime = resp.last_activity_timestamp // library marker davegut.lib_kasaCam_common, line 122
+	def sysTime = resp.system_time // library marker davegut.lib_kasaCam_common, line 123
+	def deltaTime = sysTime - lastActTime // library marker davegut.lib_kasaCam_common, line 124
+	if (lastActTime > state.lastActiveTime) { // library marker davegut.lib_kasaCam_common, line 125
+		updateAttr("motion", "active") // library marker davegut.lib_kasaCam_common, line 126
+		state.lastActiveTime = lastActTime // library marker davegut.lib_kasaCam_common, line 127
+	} else if (device.currentValue("motion") == "active" && // library marker davegut.lib_kasaCam_common, line 128
+			   15 < deltaTime) { // library marker davegut.lib_kasaCam_common, line 129
+		updateAttr("motion", "inactive") // library marker davegut.lib_kasaCam_common, line 130
+	} // library marker davegut.lib_kasaCam_common, line 131
+} // library marker davegut.lib_kasaCam_common, line 132
 
-def parseSdCard(data, source) { // library marker davegut.lib_kasaCam_common, line 132
-	Map logData = [method: "parseSdCard", source: source] // library marker davegut.lib_kasaCam_common, line 133
-	data.value.each { // library marker davegut.lib_kasaCam_common, line 134
-		def key = it.key // library marker davegut.lib_kasaCam_common, line 135
-		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 136
-		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 137
-			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 138
-			switch(key) { // library marker davegut.lib_kasaCam_common, line 139
-				case "get_sd_card_state": // library marker davegut.lib_kasaCam_common, line 140
-					setting = it.value.state // library marker davegut.lib_kasaCam_common, line 141
-					updateAttr("sdCard", setting) // library marker davegut.lib_kasaCam_common, line 142
-					valueLog << [sdCard: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 143
-					break // library marker davegut.lib_kasaCam_common, line 144
-				default: // library marker davegut.lib_kasaCam_common, line 145
-					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 146
-			} // library marker davegut.lib_kasaCam_common, line 147
-		} else { // library marker davegut.lib_kasaCam_common, line 148
-			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 149
-		} // library marker davegut.lib_kasaCam_common, line 150
-		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 151
-	} // library marker davegut.lib_kasaCam_common, line 152
-	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 153
-} // library marker davegut.lib_kasaCam_common, line 154
+def parseSdCard(data, source) { // library marker davegut.lib_kasaCam_common, line 134
+	Map logData = [method: "parseSdCard", source: source] // library marker davegut.lib_kasaCam_common, line 135
+	data.value.each { // library marker davegut.lib_kasaCam_common, line 136
+		def key = it.key // library marker davegut.lib_kasaCam_common, line 137
+		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 138
+		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 139
+			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 140
+			switch(key) { // library marker davegut.lib_kasaCam_common, line 141
+				case "get_sd_card_state": // library marker davegut.lib_kasaCam_common, line 142
+					setting = it.value.state // library marker davegut.lib_kasaCam_common, line 143
+					updateAttr("sdCard", setting) // library marker davegut.lib_kasaCam_common, line 144
+					valueLog << [sdCard: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 145
+					break // library marker davegut.lib_kasaCam_common, line 146
+				default: // library marker davegut.lib_kasaCam_common, line 147
+					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 148
+			} // library marker davegut.lib_kasaCam_common, line 149
+		} else { // library marker davegut.lib_kasaCam_common, line 150
+			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 151
+		} // library marker davegut.lib_kasaCam_common, line 152
+		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 153
+	} // library marker davegut.lib_kasaCam_common, line 154
+	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 155
+} // library marker davegut.lib_kasaCam_common, line 156
 
-def parseDayNight(data, source) { // library marker davegut.lib_kasaCam_common, line 156
-	Map logData = [method: "parseDayNight", source: source] // library marker davegut.lib_kasaCam_common, line 157
-	data.value.each { // library marker davegut.lib_kasaCam_common, line 158
-		def key = it.key // library marker davegut.lib_kasaCam_common, line 159
-		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 160
-		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 161
-			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 162
-			switch(key) { // library marker davegut.lib_kasaCam_common, line 163
-				case "set_mode": break // library marker davegut.lib_kasaCam_common, line 164
-				case "get_mode": // library marker davegut.lib_kasaCam_common, line 165
-					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 166
-					updateAttr("nightVision", setting) // library marker davegut.lib_kasaCam_common, line 167
-					valueLog << [nightVision: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 168
-					break // library marker davegut.lib_kasaCam_common, line 169
-				default: // library marker davegut.lib_kasaCam_common, line 170
-					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 171
-			} // library marker davegut.lib_kasaCam_common, line 172
-		} else { // library marker davegut.lib_kasaCam_common, line 173
-			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 174
-		} // library marker davegut.lib_kasaCam_common, line 175
-		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 176
-	} // library marker davegut.lib_kasaCam_common, line 177
-	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 178
-} // library marker davegut.lib_kasaCam_common, line 179
+def parseDayNight(data, source) { // library marker davegut.lib_kasaCam_common, line 158
+	Map logData = [method: "parseDayNight", source: source] // library marker davegut.lib_kasaCam_common, line 159
+	data.value.each { // library marker davegut.lib_kasaCam_common, line 160
+		def key = it.key // library marker davegut.lib_kasaCam_common, line 161
+		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 162
+		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 163
+			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 164
+			switch(key) { // library marker davegut.lib_kasaCam_common, line 165
+				case "set_mode": break // library marker davegut.lib_kasaCam_common, line 166
+				case "get_mode": // library marker davegut.lib_kasaCam_common, line 167
+					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 168
+					updateAttr("nightVision", setting) // library marker davegut.lib_kasaCam_common, line 169
+					valueLog << [nightVision: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 170
+					break // library marker davegut.lib_kasaCam_common, line 171
+				default: // library marker davegut.lib_kasaCam_common, line 172
+					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 173
+			} // library marker davegut.lib_kasaCam_common, line 174
+		} else { // library marker davegut.lib_kasaCam_common, line 175
+			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 176
+		} // library marker davegut.lib_kasaCam_common, line 177
+		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 178
+	} // library marker davegut.lib_kasaCam_common, line 179
+	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 180
+} // library marker davegut.lib_kasaCam_common, line 181
 
-def parseDndSchedule(data, source) { // library marker davegut.lib_kasaCam_common, line 181
-	Map logData = [method: "parseDndSchedule", source: source] // library marker davegut.lib_kasaCam_common, line 182
-	data.value.each { // library marker davegut.lib_kasaCam_common, line 183
-		def key = it.key // library marker davegut.lib_kasaCam_common, line 184
-		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 185
-		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 186
-			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 187
-			switch(key) { // library marker davegut.lib_kasaCam_common, line 188
-				case "set_dnd_enable": break // library marker davegut.lib_kasaCam_common, line 189
-				case "get_dnd_enable": // library marker davegut.lib_kasaCam_common, line 190
-					setting = it.value.enable // library marker davegut.lib_kasaCam_common, line 191
-					updateAttr("doNotDisturb", setting) // library marker davegut.lib_kasaCam_common, line 192
-					valueLog << [doNotDisturb: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 193
-					break // library marker davegut.lib_kasaCam_common, line 194
-				default: // library marker davegut.lib_kasaCam_common, line 195
-					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 196
-			} // library marker davegut.lib_kasaCam_common, line 197
-		} else { // library marker davegut.lib_kasaCam_common, line 198
-			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 199
-		} // library marker davegut.lib_kasaCam_common, line 200
-		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 201
-	} // library marker davegut.lib_kasaCam_common, line 202
-	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 203
-} // library marker davegut.lib_kasaCam_common, line 204
+def parseDndSchedule(data, source) { // library marker davegut.lib_kasaCam_common, line 183
+	Map logData = [method: "parseDndSchedule", source: source] // library marker davegut.lib_kasaCam_common, line 184
+	data.value.each { // library marker davegut.lib_kasaCam_common, line 185
+		def key = it.key // library marker davegut.lib_kasaCam_common, line 186
+		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 187
+		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 188
+			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 189
+			switch(key) { // library marker davegut.lib_kasaCam_common, line 190
+				case "set_dnd_enable": break // library marker davegut.lib_kasaCam_common, line 191
+				case "get_dnd_enable": // library marker davegut.lib_kasaCam_common, line 192
+					setting = it.value.enable // library marker davegut.lib_kasaCam_common, line 193
+					updateAttr("doNotDisturb", setting) // library marker davegut.lib_kasaCam_common, line 194
+					valueLog << [doNotDisturb: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 195
+					break // library marker davegut.lib_kasaCam_common, line 196
+				default: // library marker davegut.lib_kasaCam_common, line 197
+					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 198
+			} // library marker davegut.lib_kasaCam_common, line 199
+		} else { // library marker davegut.lib_kasaCam_common, line 200
+			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 201
+		} // library marker davegut.lib_kasaCam_common, line 202
+		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 203
+	} // library marker davegut.lib_kasaCam_common, line 204
+	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 205
+} // library marker davegut.lib_kasaCam_common, line 206
 
-def parseAudio(data, source) { // library marker davegut.lib_kasaCam_common, line 206
-	Map logData = [method: "parseAudio", source: source] // library marker davegut.lib_kasaCam_common, line 207
-	data.value.each { // library marker davegut.lib_kasaCam_common, line 208
-		def key = it.key // library marker davegut.lib_kasaCam_common, line 209
-		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 210
-		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 211
-			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 212
-			switch(key) { // library marker davegut.lib_kasaCam_common, line 213
-				case "set_mic_config": break // library marker davegut.lib_kasaCam_common, line 214
-				case "get_mic_config": // library marker davegut.lib_kasaCam_common, line 215
-					setting = it.value.volume // library marker davegut.lib_kasaCam_common, line 216
-					def mute = "muted" // library marker davegut.lib_kasaCam_common, line 217
-					if (setting > 0) { // library marker davegut.lib_kasaCam_common, line 218
-						state.lastVolume = setting // library marker davegut.lib_kasaCam_common, line 219
-						mute = "unmuted" // library marker davegut.lib_kasaCam_common, line 220
-					} // library marker davegut.lib_kasaCam_common, line 221
-					updateAttr("mute", mute) // library marker davegut.lib_kasaCam_common, line 222
-					updateAttr("volume", setting) // library marker davegut.lib_kasaCam_common, line 223
-					valueLog << [volume: setting, mute: mute, status: "OK"] // library marker davegut.lib_kasaCam_common, line 224
-				case "set_quickres_state":  // library marker davegut.lib_kasaCam_common, line 225
-					valueLog << [status: "OK"] // library marker davegut.lib_kasaCam_common, line 226
-					break // library marker davegut.lib_kasaCam_common, line 227
-				default: // library marker davegut.lib_kasaCam_common, line 228
-					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 229
-			} // library marker davegut.lib_kasaCam_common, line 230
-		} else { // library marker davegut.lib_kasaCam_common, line 231
-			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 232
-		} // library marker davegut.lib_kasaCam_common, line 233
-		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 234
-	} // library marker davegut.lib_kasaCam_common, line 235
-	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 236
-} // library marker davegut.lib_kasaCam_common, line 237
+def parseAudio(data, source) { // library marker davegut.lib_kasaCam_common, line 208
+	Map logData = [method: "parseAudio", source: source] // library marker davegut.lib_kasaCam_common, line 209
+	data.value.each { // library marker davegut.lib_kasaCam_common, line 210
+		def key = it.key // library marker davegut.lib_kasaCam_common, line 211
+		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 212
+		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 213
+			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 214
+			switch(key) { // library marker davegut.lib_kasaCam_common, line 215
+				case "set_mic_config": break // library marker davegut.lib_kasaCam_common, line 216
+				case "get_mic_config": // library marker davegut.lib_kasaCam_common, line 217
+					setting = it.value.volume // library marker davegut.lib_kasaCam_common, line 218
+					def mute = "muted" // library marker davegut.lib_kasaCam_common, line 219
+					if (setting > 0) { // library marker davegut.lib_kasaCam_common, line 220
+						state.lastVolume = setting // library marker davegut.lib_kasaCam_common, line 221
+						mute = "unmuted" // library marker davegut.lib_kasaCam_common, line 222
+					} // library marker davegut.lib_kasaCam_common, line 223
+					updateAttr("mute", mute) // library marker davegut.lib_kasaCam_common, line 224
+					updateAttr("volume", setting) // library marker davegut.lib_kasaCam_common, line 225
+					valueLog << [volume: setting, mute: mute, status: "OK"] // library marker davegut.lib_kasaCam_common, line 226
+				case "set_quickres_state":  // library marker davegut.lib_kasaCam_common, line 227
+					valueLog << [status: "OK"] // library marker davegut.lib_kasaCam_common, line 228
+					break // library marker davegut.lib_kasaCam_common, line 229
+				default: // library marker davegut.lib_kasaCam_common, line 230
+					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 231
+			} // library marker davegut.lib_kasaCam_common, line 232
+		} else { // library marker davegut.lib_kasaCam_common, line 233
+			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 234
+		} // library marker davegut.lib_kasaCam_common, line 235
+		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 236
+	} // library marker davegut.lib_kasaCam_common, line 237
+	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 238
+} // library marker davegut.lib_kasaCam_common, line 239
 
-def parseSwitch(data, source) { // library marker davegut.lib_kasaCam_common, line 239
-	Map logData = [method: "parseSwitch", source: source] // library marker davegut.lib_kasaCam_common, line 240
-	data.value.each { // library marker davegut.lib_kasaCam_common, line 241
-		def key = it.key // library marker davegut.lib_kasaCam_common, line 242
-		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 243
-		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 244
-			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 245
-			switch(key) { // library marker davegut.lib_kasaCam_common, line 246
-				case "set_is_enable": break; // library marker davegut.lib_kasaCam_common, line 247
-				case "get_is_enable": // library marker davegut.lib_kasaCam_common, line 248
-					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 249
-					updateAttr("camera", setting) // library marker davegut.lib_kasaCam_common, line 250
-					valueLog << [camera: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 251
-					runIn(5, loadCameraSettings) // library marker davegut.lib_kasaCam_common, line 252
-					break // library marker davegut.lib_kasaCam_common, line 253
-				default: // library marker davegut.lib_kasaCam_common, line 254
-					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 255
-			} // library marker davegut.lib_kasaCam_common, line 256
-		} else { // library marker davegut.lib_kasaCam_common, line 257
-			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 258
-		} // library marker davegut.lib_kasaCam_common, line 259
-		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 260
-	} // library marker davegut.lib_kasaCam_common, line 261
-	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 262
-} // library marker davegut.lib_kasaCam_common, line 263
+def parseSwitch(data, source) { // library marker davegut.lib_kasaCam_common, line 241
+	Map logData = [method: "parseSwitch", source: source] // library marker davegut.lib_kasaCam_common, line 242
+	data.value.each { // library marker davegut.lib_kasaCam_common, line 243
+		def key = it.key // library marker davegut.lib_kasaCam_common, line 244
+		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 245
+		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 246
+			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 247
+			switch(key) { // library marker davegut.lib_kasaCam_common, line 248
+				case "set_is_enable": break; // library marker davegut.lib_kasaCam_common, line 249
+				case "get_is_enable": // library marker davegut.lib_kasaCam_common, line 250
+					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 251
+					updateAttr("camera", setting) // library marker davegut.lib_kasaCam_common, line 252
+					valueLog << [camera: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 253
+					runIn(5, loadCameraSettings) // library marker davegut.lib_kasaCam_common, line 254
+					break // library marker davegut.lib_kasaCam_common, line 255
+				default: // library marker davegut.lib_kasaCam_common, line 256
+					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 257
+			} // library marker davegut.lib_kasaCam_common, line 258
+		} else { // library marker davegut.lib_kasaCam_common, line 259
+			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 260
+		} // library marker davegut.lib_kasaCam_common, line 261
+		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 262
+	} // library marker davegut.lib_kasaCam_common, line 263
+	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 264
+} // library marker davegut.lib_kasaCam_common, line 265
 
-def loadCameraSettings() { // library marker davegut.lib_kasaCam_common, line 265
-	Map settings = [md: motionDetect, // library marker davegut.lib_kasaCam_common, line 266
-					sd: soundDetect, // library marker davegut.lib_kasaCam_common, line 267
-					pd: personDetect, // library marker davegut.lib_kasaCam_common, line 268
-					cvr: cvrOnOff] // library marker davegut.lib_kasaCam_common, line 269
-		updateAttr("settings", settings) // library marker davegut.lib_kasaCam_common, line 270
-} // library marker davegut.lib_kasaCam_common, line 271
+def loadCameraSettings() { // library marker davegut.lib_kasaCam_common, line 267
+	Map settings = [md: motionDetect, // library marker davegut.lib_kasaCam_common, line 268
+					sd: soundDetect, // library marker davegut.lib_kasaCam_common, line 269
+					pd: personDetect, // library marker davegut.lib_kasaCam_common, line 270
+					cvr: cvrOnOff] // library marker davegut.lib_kasaCam_common, line 271
+		updateAttr("settings", settings) // library marker davegut.lib_kasaCam_common, line 272
+} // library marker davegut.lib_kasaCam_common, line 273
 
-def parseMotionDetect(data, source) { // library marker davegut.lib_kasaCam_common, line 273
-	Map logData = [method: "parseMotionDetect", source: source] // library marker davegut.lib_kasaCam_common, line 274
-	data.value.each { // library marker davegut.lib_kasaCam_common, line 275
-		def key = it.key // library marker davegut.lib_kasaCam_common, line 276
-		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 277
-		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 278
-			logData << ["${key}": [error: it.value.err_code]] // library marker davegut.lib_kasaCam_common, line 279
-			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 280
-			switch(key) { // library marker davegut.lib_kasaCam_common, line 281
-				case "set_sensitivity": break; // library marker davegut.lib_kasaCam_common, line 282
-				case "get_sensitivity": // library marker davegut.lib_kasaCam_common, line 283
-					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 284
-					device.updateSetting("motionSens", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 285
-					valueLog << [motionSens: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 286
-					break // library marker davegut.lib_kasaCam_common, line 287
-				case "set_is_enable": break; // library marker davegut.lib_kasaCam_common, line 288
-				case "get_is_enable": // library marker davegut.lib_kasaCam_common, line 289
-					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 290
-					device.updateSetting("motionDetect", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 291
-					valueLog << [motionDetect: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 292
-					break // library marker davegut.lib_kasaCam_common, line 293
-				case "set_min_trigger_time": break; // library marker davegut.lib_kasaCam_common, line 294
-				case "get_min_trigger_time": // library marker davegut.lib_kasaCam_common, line 295
-					setting = it.value.day_mode_value // library marker davegut.lib_kasaCam_common, line 296
-					device.updateSetting("triggerTime", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 297
-					valueLog << [triggerTime: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 298
-					break // library marker davegut.lib_kasaCam_common, line 299
-				default: // library marker davegut.lib_kasaCam_common, line 300
-					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 301
-			} // library marker davegut.lib_kasaCam_common, line 302
-		} else { // library marker davegut.lib_kasaCam_common, line 303
-			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 304
-		} // library marker davegut.lib_kasaCam_common, line 305
-		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 306
+def parseMotionDetect(data, source) { // library marker davegut.lib_kasaCam_common, line 275
+	Map logData = [method: "parseMotionDetect", source: source] // library marker davegut.lib_kasaCam_common, line 276
+	data.value.each { // library marker davegut.lib_kasaCam_common, line 277
+		def key = it.key // library marker davegut.lib_kasaCam_common, line 278
+		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 279
+		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 280
+			logData << ["${key}": [error: it.value.err_code]] // library marker davegut.lib_kasaCam_common, line 281
+			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 282
+			switch(key) { // library marker davegut.lib_kasaCam_common, line 283
+				case "set_sensitivity": break; // library marker davegut.lib_kasaCam_common, line 284
+				case "get_sensitivity": // library marker davegut.lib_kasaCam_common, line 285
+					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 286
+					device.updateSetting("motionSens", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 287
+					valueLog << [motionSens: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 288
+					break // library marker davegut.lib_kasaCam_common, line 289
+				case "set_is_enable": break; // library marker davegut.lib_kasaCam_common, line 290
+				case "get_is_enable": // library marker davegut.lib_kasaCam_common, line 291
+					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 292
+					device.updateSetting("motionDetect", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 293
+					valueLog << [motionDetect: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 294
+					break // library marker davegut.lib_kasaCam_common, line 295
+				case "set_min_trigger_time": break; // library marker davegut.lib_kasaCam_common, line 296
+				case "get_min_trigger_time": // library marker davegut.lib_kasaCam_common, line 297
+					setting = it.value.day_mode_value // library marker davegut.lib_kasaCam_common, line 298
+					device.updateSetting("triggerTime", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 299
+					valueLog << [triggerTime: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 300
+					break // library marker davegut.lib_kasaCam_common, line 301
+				default: // library marker davegut.lib_kasaCam_common, line 302
+					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 303
+			} // library marker davegut.lib_kasaCam_common, line 304
+		} else { // library marker davegut.lib_kasaCam_common, line 305
+			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 306
+		} // library marker davegut.lib_kasaCam_common, line 307
+		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 308
 
-	} // library marker davegut.lib_kasaCam_common, line 308
-	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 309
-} // library marker davegut.lib_kasaCam_common, line 310
+	} // library marker davegut.lib_kasaCam_common, line 310
+	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 311
+} // library marker davegut.lib_kasaCam_common, line 312
 
-def parseLed(data, source) { // library marker davegut.lib_kasaCam_common, line 312
-	Map logData = [method: "parseLed", source: source] // library marker davegut.lib_kasaCam_common, line 313
-	data.value.each { // library marker davegut.lib_kasaCam_common, line 314
-		def key = it.key // library marker davegut.lib_kasaCam_common, line 315
-		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 316
-		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 317
-			logData << ["${key}": [error: it.value.err_code]] // library marker davegut.lib_kasaCam_common, line 318
-			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 319
-			switch(key) { // library marker davegut.lib_kasaCam_common, line 320
-				case "set_buttonled_status": break; // library marker davegut.lib_kasaCam_common, line 321
-				case "get_buttonled_status": // library marker davegut.lib_kasaCam_common, line 322
-					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 323
-					device.updateSetting("dbLedOnOff", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 324
-					valueLog << [dbLedOnOff: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 325
-					break // library marker davegut.lib_kasaCam_common, line 326
-				case "set_status": break; // library marker davegut.lib_kasaCam_common, line 327
-				case "get_status": // library marker davegut.lib_kasaCam_common, line 328
-					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 329
-					device.updateSetting("ledOnOff", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 330
-					valueLog << [ledOnOff: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 331
-					break // library marker davegut.lib_kasaCam_common, line 332
-				default: // library marker davegut.lib_kasaCam_common, line 333
-					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 334
-			} // library marker davegut.lib_kasaCam_common, line 335
-		} else { // library marker davegut.lib_kasaCam_common, line 336
-			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 337
-		} // library marker davegut.lib_kasaCam_common, line 338
-		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 339
+def parseLed(data, source) { // library marker davegut.lib_kasaCam_common, line 314
+	Map logData = [method: "parseLed", source: source] // library marker davegut.lib_kasaCam_common, line 315
+	data.value.each { // library marker davegut.lib_kasaCam_common, line 316
+		def key = it.key // library marker davegut.lib_kasaCam_common, line 317
+		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 318
+		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 319
+			logData << ["${key}": [error: it.value.err_code]] // library marker davegut.lib_kasaCam_common, line 320
+			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 321
+			switch(key) { // library marker davegut.lib_kasaCam_common, line 322
+				case "set_buttonled_status": break; // library marker davegut.lib_kasaCam_common, line 323
+				case "get_buttonled_status": // library marker davegut.lib_kasaCam_common, line 324
+					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 325
+					device.updateSetting("dbLedOnOff", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 326
+					valueLog << [dbLedOnOff: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 327
+					break // library marker davegut.lib_kasaCam_common, line 328
+				case "set_status": break; // library marker davegut.lib_kasaCam_common, line 329
+				case "get_status": // library marker davegut.lib_kasaCam_common, line 330
+					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 331
+					device.updateSetting("ledOnOff", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 332
+					valueLog << [ledOnOff: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 333
+					break // library marker davegut.lib_kasaCam_common, line 334
+				default: // library marker davegut.lib_kasaCam_common, line 335
+					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 336
+			} // library marker davegut.lib_kasaCam_common, line 337
+		} else { // library marker davegut.lib_kasaCam_common, line 338
+			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 339
+		} // library marker davegut.lib_kasaCam_common, line 340
+		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 341
 
-	} // library marker davegut.lib_kasaCam_common, line 341
-	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 342
-} // library marker davegut.lib_kasaCam_common, line 343
+	} // library marker davegut.lib_kasaCam_common, line 343
+	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 344
+} // library marker davegut.lib_kasaCam_common, line 345
 
-def parseSoundDetect(data, source) { // library marker davegut.lib_kasaCam_common, line 345
-	Map logData = [method: "parseSoundDetect", source: source] // library marker davegut.lib_kasaCam_common, line 346
-	data.value.each { // library marker davegut.lib_kasaCam_common, line 347
-		def key = it.key // library marker davegut.lib_kasaCam_common, line 348
-		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 349
-		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 350
-			logData << ["${key}": [error: it.value.err_code]] // library marker davegut.lib_kasaCam_common, line 351
-			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 352
-			switch(key) { // library marker davegut.lib_kasaCam_common, line 353
-				case "set_is_enable": break; // library marker davegut.lib_kasaCam_common, line 354
-				case "get_is_enable": // library marker davegut.lib_kasaCam_common, line 355
-					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 356
-					device.updateSetting("soundDetect", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 357
-					valueLog << [soundDetect: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 358
-					break // library marker davegut.lib_kasaCam_common, line 359
-				case "set_sensitivity": break; // library marker davegut.lib_kasaCam_common, line 360
-				case "get_sensitivity": // library marker davegut.lib_kasaCam_common, line 361
-					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 362
-					device.updateSetting("soundDetSense", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 363
-					valueLog << [soundDetSense: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 364
-					break // library marker davegut.lib_kasaCam_common, line 365
-				default: // library marker davegut.lib_kasaCam_common, line 366
-					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 367
-			} // library marker davegut.lib_kasaCam_common, line 368
-		} else { // library marker davegut.lib_kasaCam_common, line 369
-			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 370
-		} // library marker davegut.lib_kasaCam_common, line 371
-		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 372
+def parseSoundDetect(data, source) { // library marker davegut.lib_kasaCam_common, line 347
+	Map logData = [method: "parseSoundDetect", source: source] // library marker davegut.lib_kasaCam_common, line 348
+	data.value.each { // library marker davegut.lib_kasaCam_common, line 349
+		def key = it.key // library marker davegut.lib_kasaCam_common, line 350
+		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 351
+		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 352
+			logData << ["${key}": [error: it.value.err_code]] // library marker davegut.lib_kasaCam_common, line 353
+			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 354
+			switch(key) { // library marker davegut.lib_kasaCam_common, line 355
+				case "set_is_enable": break; // library marker davegut.lib_kasaCam_common, line 356
+				case "get_is_enable": // library marker davegut.lib_kasaCam_common, line 357
+					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 358
+					device.updateSetting("soundDetect", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 359
+					valueLog << [soundDetect: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 360
+					break // library marker davegut.lib_kasaCam_common, line 361
+				case "set_sensitivity": break; // library marker davegut.lib_kasaCam_common, line 362
+				case "get_sensitivity": // library marker davegut.lib_kasaCam_common, line 363
+					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 364
+					device.updateSetting("soundDetSense", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 365
+					valueLog << [soundDetSense: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 366
+					break // library marker davegut.lib_kasaCam_common, line 367
+				default: // library marker davegut.lib_kasaCam_common, line 368
+					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 369
+			} // library marker davegut.lib_kasaCam_common, line 370
+		} else { // library marker davegut.lib_kasaCam_common, line 371
+			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 372
+		} // library marker davegut.lib_kasaCam_common, line 373
+		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 374
 
-	} // library marker davegut.lib_kasaCam_common, line 374
-	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 375
-} // library marker davegut.lib_kasaCam_common, line 376
+	} // library marker davegut.lib_kasaCam_common, line 376
+	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 377
+} // library marker davegut.lib_kasaCam_common, line 378
 
-def parseIntel(data, source) { // library marker davegut.lib_kasaCam_common, line 378
-	Map logData = [method: "parseIntel", source: source] // library marker davegut.lib_kasaCam_common, line 379
-	data.value.each { // library marker davegut.lib_kasaCam_common, line 380
-		def key = it.key // library marker davegut.lib_kasaCam_common, line 381
-		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 382
-		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 383
-			logData << ["${key}": [error: it.value.err_code]] // library marker davegut.lib_kasaCam_common, line 384
-			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 385
-			switch(key) { // library marker davegut.lib_kasaCam_common, line 386
-				case "set_pd_enable": break; // library marker davegut.lib_kasaCam_common, line 387
-				case "get_pd_enable": // library marker davegut.lib_kasaCam_common, line 388
-					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 389
-					device.updateSetting("personDetect", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 390
-					valueLog << [personDetect: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 391
-					break // library marker davegut.lib_kasaCam_common, line 392
-				default: // library marker davegut.lib_kasaCam_common, line 393
-					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 394
-			} // library marker davegut.lib_kasaCam_common, line 395
-		} else { // library marker davegut.lib_kasaCam_common, line 396
-			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 397
-		} // library marker davegut.lib_kasaCam_common, line 398
-		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 399
+def parseIntel(data, source) { // library marker davegut.lib_kasaCam_common, line 380
+	Map logData = [method: "parseIntel", source: source] // library marker davegut.lib_kasaCam_common, line 381
+	data.value.each { // library marker davegut.lib_kasaCam_common, line 382
+		def key = it.key // library marker davegut.lib_kasaCam_common, line 383
+		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 384
+		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 385
+			logData << ["${key}": [error: it.value.err_code]] // library marker davegut.lib_kasaCam_common, line 386
+			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 387
+			switch(key) { // library marker davegut.lib_kasaCam_common, line 388
+				case "set_pd_enable": break; // library marker davegut.lib_kasaCam_common, line 389
+				case "get_pd_enable": // library marker davegut.lib_kasaCam_common, line 390
+					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 391
+					device.updateSetting("personDetect", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 392
+					valueLog << [personDetect: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 393
+					break // library marker davegut.lib_kasaCam_common, line 394
+				default: // library marker davegut.lib_kasaCam_common, line 395
+					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 396
+			} // library marker davegut.lib_kasaCam_common, line 397
+		} else { // library marker davegut.lib_kasaCam_common, line 398
+			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 399
+		} // library marker davegut.lib_kasaCam_common, line 400
+		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 401
 
-	} // library marker davegut.lib_kasaCam_common, line 401
-	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 402
-} // library marker davegut.lib_kasaCam_common, line 403
+	} // library marker davegut.lib_kasaCam_common, line 403
+	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 404
+} // library marker davegut.lib_kasaCam_common, line 405
 
-def parseDelivery(data, source) { // library marker davegut.lib_kasaCam_common, line 405
-	Map logData = [method: "parseDelivery", source: source] // library marker davegut.lib_kasaCam_common, line 406
-	data.value.each { // library marker davegut.lib_kasaCam_common, line 407
-		def key = it.key // library marker davegut.lib_kasaCam_common, line 408
-		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 409
-		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 410
-			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 411
-			switch(key) { // library marker davegut.lib_kasaCam_common, line 412
-				case "set_clip_audio_is_enable": break; // library marker davegut.lib_kasaCam_common, line 413
-				case "get_clip_audio_is_enable": // library marker davegut.lib_kasaCam_common, line 414
-					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 415
-					device.updateSetting("clipAudio", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 416
-					valueLog << [clipAudio: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 417
-					break // library marker davegut.lib_kasaCam_common, line 418
-				default: // library marker davegut.lib_kasaCam_common, line 419
-					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 420
-			} // library marker davegut.lib_kasaCam_common, line 421
-		} else { // library marker davegut.lib_kasaCam_common, line 422
-			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 423
-		} // library marker davegut.lib_kasaCam_common, line 424
-		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 425
-	} // library marker davegut.lib_kasaCam_common, line 426
-	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 427
-} // library marker davegut.lib_kasaCam_common, line 428
+def parseDelivery(data, source) { // library marker davegut.lib_kasaCam_common, line 407
+	Map logData = [method: "parseDelivery", source: source] // library marker davegut.lib_kasaCam_common, line 408
+	data.value.each { // library marker davegut.lib_kasaCam_common, line 409
+		def key = it.key // library marker davegut.lib_kasaCam_common, line 410
+		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 411
+		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 412
+			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 413
+			switch(key) { // library marker davegut.lib_kasaCam_common, line 414
+				case "set_clip_audio_is_enable": break; // library marker davegut.lib_kasaCam_common, line 415
+				case "get_clip_audio_is_enable": // library marker davegut.lib_kasaCam_common, line 416
+					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 417
+					device.updateSetting("clipAudio", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 418
+					valueLog << [clipAudio: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 419
+					break // library marker davegut.lib_kasaCam_common, line 420
+				default: // library marker davegut.lib_kasaCam_common, line 421
+					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 422
+			} // library marker davegut.lib_kasaCam_common, line 423
+		} else { // library marker davegut.lib_kasaCam_common, line 424
+			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 425
+		} // library marker davegut.lib_kasaCam_common, line 426
+		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 427
+	} // library marker davegut.lib_kasaCam_common, line 428
+	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 429
+} // library marker davegut.lib_kasaCam_common, line 430
 
-def parseVod(data, source) { // library marker davegut.lib_kasaCam_common, line 430
-	Map logData = [method: "parseVod", source: source] // library marker davegut.lib_kasaCam_common, line 431
-	def error = false // library marker davegut.lib_kasaCam_common, line 432
-	data.value.each { // library marker davegut.lib_kasaCam_common, line 433
-		def key = it.key // library marker davegut.lib_kasaCam_common, line 434
-		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 435
-		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 436
-			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 437
-			switch(key) { // library marker davegut.lib_kasaCam_common, line 438
-				case "set_is_enable": break; // library marker davegut.lib_kasaCam_common, line 439
-				case "get_is_enable": // library marker davegut.lib_kasaCam_common, line 440
-					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 441
-					device.updateSetting("cvrOnOff", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 442
-					logData << [cvrOnOff: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 443
-					break // library marker davegut.lib_kasaCam_common, line 444
-				case "get_detect_zone_list": // library marker davegut.lib_kasaCam_common, line 445
-					setting = it.value.list // library marker davegut.lib_kasaCam_common, line 446
-					state.recentEvents = setting // library marker davegut.lib_kasaCam_common, line 447
-					logData << [recentEvents: setting, status: "OK"]	 // library marker davegut.lib_kasaCam_common, line 448
-					break // library marker davegut.lib_kasaCam_common, line 449
-				default: // library marker davegut.lib_kasaCam_common, line 450
-					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 451
-			} // library marker davegut.lib_kasaCam_common, line 452
-		} else { // library marker davegut.lib_kasaCam_common, line 453
-			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 454
-		} // library marker davegut.lib_kasaCam_common, line 455
-		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 456
-	} // library marker davegut.lib_kasaCam_common, line 457
-	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 458
-} // library marker davegut.lib_kasaCam_common, line 459
+def parseVod(data, source) { // library marker davegut.lib_kasaCam_common, line 432
+	Map logData = [method: "parseVod", source: source] // library marker davegut.lib_kasaCam_common, line 433
+	def error = false // library marker davegut.lib_kasaCam_common, line 434
+	data.value.each { // library marker davegut.lib_kasaCam_common, line 435
+		def key = it.key // library marker davegut.lib_kasaCam_common, line 436
+		Map valueLog = [resp: it.value] // library marker davegut.lib_kasaCam_common, line 437
+		if (it.value.err_code == 0) { // library marker davegut.lib_kasaCam_common, line 438
+			def setting = "ERROR" // library marker davegut.lib_kasaCam_common, line 439
+			switch(key) { // library marker davegut.lib_kasaCam_common, line 440
+				case "set_is_enable": break; // library marker davegut.lib_kasaCam_common, line 441
+				case "get_is_enable": // library marker davegut.lib_kasaCam_common, line 442
+					setting = it.value.value // library marker davegut.lib_kasaCam_common, line 443
+					device.updateSetting("cvrOnOff", [type:"enum", value: setting]) // library marker davegut.lib_kasaCam_common, line 444
+					logData << [cvrOnOff: setting, status: "OK"] // library marker davegut.lib_kasaCam_common, line 445
+					break // library marker davegut.lib_kasaCam_common, line 446
+				case "get_detect_zone_list": // library marker davegut.lib_kasaCam_common, line 447
+					setting = it.value.list // library marker davegut.lib_kasaCam_common, line 448
+					state.recentEvents = setting // library marker davegut.lib_kasaCam_common, line 449
+					logData << [recentEvents: setting, status: "OK"]	 // library marker davegut.lib_kasaCam_common, line 450
+					break // library marker davegut.lib_kasaCam_common, line 451
+				default: // library marker davegut.lib_kasaCam_common, line 452
+					valueLog << [status: "unhandled"] // library marker davegut.lib_kasaCam_common, line 453
+			} // library marker davegut.lib_kasaCam_common, line 454
+		} else { // library marker davegut.lib_kasaCam_common, line 455
+			valueLog << [status: "notParsed"] // library marker davegut.lib_kasaCam_common, line 456
+		} // library marker davegut.lib_kasaCam_common, line 457
+		logData << ["${key}": valueLog] // library marker davegut.lib_kasaCam_common, line 458
+	} // library marker davegut.lib_kasaCam_common, line 459
+	logDebug(logData) // library marker davegut.lib_kasaCam_common, line 460
+} // library marker davegut.lib_kasaCam_common, line 461
 
-def updateAttr(attr, value) { // library marker davegut.lib_kasaCam_common, line 461
-	if (device.currentValue(attr) != value) { // library marker davegut.lib_kasaCam_common, line 462
-		sendEvent(name: attr, value: value) // library marker davegut.lib_kasaCam_common, line 463
-	} // library marker davegut.lib_kasaCam_common, line 464
-} // library marker davegut.lib_kasaCam_common, line 465
+def updateAttr(attr, value) { // library marker davegut.lib_kasaCam_common, line 463
+	if (device.currentValue(attr) != value) { // library marker davegut.lib_kasaCam_common, line 464
+		sendEvent(name: attr, value: value) // library marker davegut.lib_kasaCam_common, line 465
+	} // library marker davegut.lib_kasaCam_common, line 466
+} // library marker davegut.lib_kasaCam_common, line 467
 
 // ~~~~~ end include (43) davegut.lib_kasaCam_common ~~~~~
 
