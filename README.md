@@ -12,11 +12,9 @@ Installation: https://github.com/DaveGut/kasaCam_Hubitat/blob/main/Docs/kasaCame
 
 App description: Pending Development
 
-Installed Device Information: https://github.com/DaveGut/tpLink_Hubitat/blob/main/Docs/TapoDevices.md
+Installed Device Information: https://github.com/DaveGut/kasaCam_Hubitat/blob/main/Docs/kasaCameraDevices.md
 
-RSA / AES Security Note: Pending Development
- 
 GitHub data used in development.  I greatly appreciate the data provided in the below repositories in getting this implementation completed.
 
-	https://github.com/dickydoouk/tp-link-tapo-connect
-	https://github.com/mihai-dinculescu/tapo
+	https://github.com/bstrdsmkr/python-kasa/blob/kasacam_support/kasa/smartcameraprotocol.py#L87
+ 	https://github.com/401Unauthorized/locam
